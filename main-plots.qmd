@@ -1,0 +1,55 @@
+---
+    title: "The Reading Class in the United States: 1982-2012"
+    author: "Omar Lizardo"
+    date: "`r Sys.Date()`"
+---
+
+# Setup
+```{r setup}
+    knitr::opts_chunk$set(include=FALSE, echo = TRUE, warning = FALSE, message = FALSE)
+    require("conflicted")
+    require("ggplot2")
+    require("haven")
+    require("here")   
+    require("likert")
+    require("patchwork")
+    require("tidyverse")
+    require("wesanderson")
+```
+
+# Data Wrangling
+```{r}
+    yesno <- c("yes", "no")
+    all.dat <- read_dta("C:/Users/Omar Lizardo/Google Drive/MISC DATA SOURCES/SPPA-1982-2012/sppa1982-2012_stata.dta",
+                              col_select = c("persid", "year", 
+                                             "age", "gender", "education",
+                                             "books", "books_n", "read_novels")) %>% 
+    mutate(novels_f = factor(read_novels, labels = yesno),
+            cohort = year - age
+            ) %>% 
+    mutate(books_n = if_else(books == 2 & is.na(books_n), 0, books_n)) %>% 
+    mutate(read.class = if_else(books_n >= 4 & read_novels == 1, 1, 2)) %>% 
+    mutate(read.class = factor(read.class, labels = yesno)) %>% 
+    mutate(cohort = if_else(cohort < 1900, 1900, cohort)) %>% 
+    mutate(cohort_f = factor(cohort, labels = as.character(c(1900:1994)))) %>% 
+    mutate(college = if_else(education >= 5, 1, 0)) %>% 
+    dplyr::filter(cohort >= 1910 & cohort <= 1985) %>% 
+    na.omit()
+    coll.dat <- dplyr::filter(all.dat, college == 1)
+    ncol.dat <- dplyr::filter(all.dat, college == 0)
+```
+
+```{r}
+    plot.dat <- likert(all.dat["read.class"], grouping = all.dat$cohort_f)
+    p1 <- plot(plot.dat, colors = wes_palette("Darjeeling1")[c(1,5)])
+
+    plot.dat <- likert(coll.dat["read.class"], grouping = coll.dat$cohort_f)
+    p2 <- plot(plot.dat, colors = wes_palette("Darjeeling1")[c(1,5)])
+
+    plot.dat <- likert(ncol.dat["read.class"], grouping = ncol.dat$cohort_f)
+    p3 <- plot(plot.dat, colors = wes_palette("Darjeeling1")[c(1,5)])
+
+    wrap_plots(p1, p2, p3, nrow = 1)
+```
+
+
